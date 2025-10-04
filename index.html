@@ -84,6 +84,15 @@
         font-family: 'Cairo', sans-serif;
     }
 
+    /* اجعل محتوى خانة "ما تم تنفيذه" بمحاذاة اليمين */
+    .executed + td textarea {
+        text-align: right;
+        direction: rtl;
+        resize: none; /* نمنع السحب اليدوي */
+        overflow: hidden;
+        min-height: 80px;
+    }
+
     .signatures {
         margin-top: 15px;
         width: 100%;
@@ -100,13 +109,22 @@
         margin-right: 5px;
     }
 
-    .print-btn {
-        margin: 15px auto;
-        display: block;
-        padding: 10px 20px;
+    .actions {
+        margin: 15px 0;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 10px 16px;
         font-size: 16px;
         cursor: pointer;
         font-family: 'Cairo', sans-serif;
+        border: 1px solid #222;
+        background: #f7f7f7;
+        border-radius: 8px;
     }
 
     .shawahid-container {
@@ -126,15 +144,11 @@
     @media print {
         .upload-logo,
         input[type="file"],
-        .print-btn {
+        .actions {
             display: none !important;
         }
     }
 </style>
-
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0d47a1">
-<link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 
@@ -151,7 +165,7 @@
 <div class="logo">
     <img id="ministryLogo" src="" alt="شعار الوزارة">
     <div class="upload-logo">
-        <input type="file" accept="image/*" onchange="previewLogo(event)">
+        <input id="logoInput" type="file" accept="image/*" onchange="previewLogo(event)">
     </div>
 </div>
 
@@ -162,6 +176,11 @@
         <input type="text" value="1448" class="inline-input"> هـ
         (<input type="text" class="inline-input term" value="الفصل الدراسي الأول">)
     </h2>
+</div>
+
+<div class="actions">
+    <button class="btn" onclick="resetAll()">➕ إنشاء جديد</button>
+    <button class="btn" onclick="window.print()">🖨️ طباعة التقرير</button>
 </div>
 
 <table>
@@ -185,12 +204,12 @@
     </tr>
     <tr>
         <td colspan="2" class="executed">ما تم تنفيذه</td>
-        <td colspan="2"><textarea style="width:98%; height:80px"></textarea></td>
+        <td colspan="2"><textarea id="executedText" style="width:98%;"></textarea></td>
     </tr>
     <tr>
         <td colspan="2" class="evidence">الشواهد</td>
         <td colspan="2">
-            <input type="file" accept="image/*" multiple onchange="previewShawahid(event)">
+            <input id="shawahidInput" type="file" accept="image/*" multiple onchange="previewShawahid(event)">
             <div class="shawahid-container" id="shawahidPreview"></div>
         </td>
     </tr>
@@ -214,13 +233,12 @@
     </div>
 </div>
 
-<button class="print-btn" onclick="window.print()">🖨️ طباعة التقرير</button>
-
 <script>
 function previewLogo(event) {
     const logo = document.getElementById("ministryLogo");
     logo.src = URL.createObjectURL(event.target.files[0]);
 }
+
 function previewShawahid(event) {
     const container = document.getElementById("shawahidPreview");
     container.innerHTML = "";
@@ -231,18 +249,46 @@ function previewShawahid(event) {
         container.appendChild(img);
     });
 }
-</script>
 
-
-<script>
-// تسجيل Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js').catch(function(err){
-      console.log('SW registration failed:', err);
+/* دالة تفريغ جميع الخانات للبدء كتقرير جديد */
+function resetAll() {
+    // تفريغ النصوص والأرقام
+    document.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => {
+        el.value = "";
     });
-  });
+
+    // تفريغ المناطق النصية
+    document.querySelectorAll('textarea').forEach(el => {
+        el.value = "";
+        el.style.height = "80px"; // إعادة الارتفاع الافتراضي
+    });
+
+    // تفريغ ملفات الصور والشعار
+    document.querySelectorAll('input[type="file"]').forEach(el => {
+        try { el.value = null; } catch(e) { el.value = ""; }
+    });
+
+    // إزالة عرض الشواهد
+    const container = document.getElementById("shawahidPreview");
+    if (container) container.innerHTML = "";
+
+    // إزالة الشعار
+    const logo = document.getElementById("ministryLogo");
+    if (logo) {
+        logo.removeAttribute("src");
+        logo.alt = "شعار الوزارة";
+    }
+
+    // إعادة التمرير للأعلى (اختياري)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+/* اجعل خانة ما تم تنفيذه تتمدد حسب النص */
+const executedText = document.getElementById("executedText");
+executedText.addEventListener("input", function() {
+    this.style.height = "auto";
+    this.style.height = (this.scrollHeight) + "px";
+});
 </script>
 
 </body>
